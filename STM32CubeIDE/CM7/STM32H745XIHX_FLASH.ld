@@ -52,7 +52,7 @@ MEMORY
   RAM_D3 	(xrw)   : ORIGIN = 0x38000000, LENGTH = 64K
   ITCMRAM 	(xrw)  	: ORIGIN = 0x00000000, LENGTH = 64K
   QUADSPI 	(r)    	: ORIGIN = 0x90000000, LENGTH = 126M
-  SDRAM     (xrw)    : ORIGIN = 0xD0000000,   LENGTH = 16M
+  SDRAM     (xrw)   : ORIGIN = 0xD0000000, LENGTH = 8M
 }
 
 /* Sections */
@@ -210,10 +210,10 @@ SECTIONS
     . = ALIGN(0x4);
   } >QUADSPI
 
-  BufferSection (NOLOAD) :
+  .SDRAM_data (NOLOAD) :
   {  
     /* Přidání sekce .sdram pro LVGL buffery */
-    *( .sdram ) 
     . = ALIGN(32);
-   } >SDRAM
+    *(.SDRAM_data)     
+   } > SDRAM
 }

@@ -63,8 +63,8 @@ static void disp_flush (lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *c
   lv_coord_t width = lv_area_get_width(area);
   lv_coord_t height = lv_area_get_height(area);
 
-  //SCB_CleanDCache_by_Addr((uint32_t*)color_p, width * height * 2);
-  //SCB_CleanInvalidateDCache();
+  SCB_CleanDCache_by_Addr((uint32_t*)color_p, width * height * 2);
+  //SCB_CleanInvalidateDCache();         // cisti a inicializuje celou cache, muze byt pomale
 
   DMA2D->CR = 0x0U << DMA2D_CR_MODE_Pos;
   DMA2D->FGPFCCR = DMA2D_INPUT_RGB565;
@@ -79,7 +79,7 @@ static void disp_flush (lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *c
   DMA2D->CR |= DMA2D_CR_TCIE;
   DMA2D->CR |= DMA2D_CR_START;
 
-  //SCB_InvalidateDCache_by_Addr((uint32_t*)hltdc.LayerCfg[0].FBStartAdress, width * height * 2);
+  SCB_InvalidateDCache_by_Addr((uint32_t*)hltdc.LayerCfg[0].FBStartAdress, width * height * 2);
 }
 
 //----------------------------------------------------------------------------------------------------

@@ -32,6 +32,12 @@ typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 extern uint32_t *g_pfnVectors;
 
+// MEP LTDC Buffer placed into SDRAM
+uint8_t ltdc_buffer[MY_DISP_HOR_RES*MY_DISP_VER_RES*2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
+uint32_t ltdc_buffer_addr(void)
+{
+  return (uint32_t)&ltdc_buffer[0];
+}
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -300,7 +306,7 @@ Error_Handler();
   // init Protothread to set brightness (after) reset
   PT_INIT(&myLCD.BL.pt);
   myLCD.BL.enable 		= false; // BL not allowd now - after all tasks have been started - see default task
-  myLCD.BL.target 		= 500;     // 0-499 -> 0-100%
+  myLCD.BL.target 		= 100;     // 0-499 -> 0-100%
   myLCD.BL.target_old 	=   0;
   myLCD.BL.dir			=   0;
 
@@ -313,7 +319,7 @@ Error_Handler();
   lv_demo_widgets();
    //lv_demo_keypad_encoder();
    //lv_demo_music();
-   //lv_demo_benchmark();
+  // lv_demo_benchmark();
 
   /* USER CODE END 2 */
 
@@ -441,10 +447,10 @@ void PeriphCommonClock_Config(void)
   */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FMC|RCC_PERIPHCLK_FDCAN;
   PeriphClkInitStruct.PLL2.PLL2M = 5;
-  PeriphClkInitStruct.PLL2.PLL2N = 128;
+  PeriphClkInitStruct.PLL2.PLL2N = 192;
   PeriphClkInitStruct.PLL2.PLL2P = 2;
-  PeriphClkInitStruct.PLL2.PLL2Q = 8;
-  PeriphClkInitStruct.PLL2.PLL2R = 3;
+  PeriphClkInitStruct.PLL2.PLL2Q = 12;
+  PeriphClkInitStruct.PLL2.PLL2R = 4;
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
@@ -694,7 +700,7 @@ static void MX_LTDC_Init(void)
   pLayerCfg.Alpha0 = 0;
   pLayerCfg.BlendingFactor1 = LTDC_BLENDING_FACTOR1_CA;
   pLayerCfg.BlendingFactor2 = LTDC_BLENDING_FACTOR2_CA;
-  pLayerCfg.FBStartAdress = 0xD0000000;
+  pLayerCfg.FBStartAdress = ltdc_buffer_addr();
   pLayerCfg.ImageWidth = 800;
   pLayerCfg.ImageHeight = 480;
   pLayerCfg.Backcolor.Blue = 0;
@@ -704,7 +710,10 @@ static void MX_LTDC_Init(void)
   {
     Error_Handler();
   }
+
   /* USER CODE BEGIN LTDC_Init 2 */
+   __NOP();
+  pLayerCfg.FBStartAdress = ltdc_buffer_addr();  // MEP aby byl videt LTDC buffer v RAM Build analyzeru
 
   /* USER CODE END LTDC_Init 2 */
 
@@ -1038,7 +1047,7 @@ void LVGLTimer(void *argument)
   for(;;)
   {
      lv_timer_handler();   // 1 tick ~ 1ms (for 1000Hz RTOS main timer)
-	 osDelay(10);         // range 5-10ms, 16 ~ 60FPS
+	 osDelay(20);         // range 5-10ms, 16 ~ 60FPS
   }
 }
 /* LVGL tick source */
@@ -1046,8 +1055,8 @@ void LVGLTick(void *argument)
 {
   for(;;)
   {
-    lv_tick_inc(1);   // range 10ms
-    osDelay(1);
+    lv_tick_inc(10);   // range 10ms
+    osDelay(10);
   }
 }
 
