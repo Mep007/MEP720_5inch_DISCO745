@@ -18,8 +18,10 @@ static lv_disp_draw_buf_t 	disp_buf;
 /**********************
  *  DEFINES
  **********************/
-#define LVGL_BUFFER_1_ADDR_AT_SDRAM	SDRAM_DEVICE_ADDR + 2 * (MY_DISP_HOR_RES * MY_DISP_VER_RES)      // RGB565 ( ex. 800x480 x2bytes/per pixel = 768kB/per buffer)
-#define LVGL_BUFFER_2_ADDR_AT_SDRAM	SDRAM_DEVICE_ADDR + 4 * (MY_DISP_HOR_RES * MY_DISP_VER_RES)      //
+//#define LVGL_BUFFER_1_ADDR_AT_SDRAM	SDRAM_DEVICE_ADDR + 2 * (MY_DISP_HOR_RES * MY_DISP_VER_RES)      // RGB565 ( ex. 800x480 x2bytes/per pixel = 768kB/per buffer)
+//#define LVGL_BUFFER_2_ADDR_AT_SDRAM	SDRAM_DEVICE_ADDR + 4 * (MY_DISP_HOR_RES * MY_DISP_VER_RES)      //
+static uint32_t buf1[(MY_DISP_HOR_RES*MY_DISP_VER_RES)/2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
+static uint32_t buf2[(MY_DISP_HOR_RES*MY_DISP_VER_RES)/2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
 
 /**********************
  *   GLOBAL FUNCTIONS
@@ -28,8 +30,10 @@ static lv_disp_draw_buf_t 	disp_buf;
 void lvgl_display_init (void)   // display initialization /* display is already initialized by cubemx-generated code
 {
   lv_disp_draw_buf_init (&disp_buf,
-      (void*) LVGL_BUFFER_1_ADDR_AT_SDRAM,
-      (void*) LVGL_BUFFER_2_ADDR_AT_SDRAM,
+      //(void*) LVGL_BUFFER_1_ADDR_AT_SDRAM,
+      //(void*) LVGL_BUFFER_2_ADDR_AT_SDRAM,
+	  (void*) buf1,
+	  (void*) buf2,
       MY_DISP_HOR_RES * MY_DISP_VER_RES);
 
   /* register the display in LVGL */

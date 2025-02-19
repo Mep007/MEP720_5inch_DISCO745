@@ -33,7 +33,10 @@ typedef StaticTask_t osStaticThreadDef_t;
 extern uint32_t *g_pfnVectors;
 
 // MEP LTDC Buffer placed into SDRAM
-uint8_t ltdc_buffer[MY_DISP_HOR_RES*MY_DISP_VER_RES*2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
+//uint8_t ltdc_buffer[MY_DISP_HOR_RES*MY_DISP_VER_RES*2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
+static uint32_t ltdc_buffer[(MY_DISP_HOR_RES*MY_DISP_VER_RES)/2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
+
+
 uint32_t ltdc_buffer_addr(void)
 {
   return (uint32_t)&ltdc_buffer[0];
@@ -1047,7 +1050,7 @@ void LVGLTimer(void *argument)
   for(;;)
   {
      lv_timer_handler();   // 1 tick ~ 1ms (for 1000Hz RTOS main timer)
-	 osDelay(20);         // range 5-10ms, 16 ~ 60FPS
+	 osDelay(10);         // range 5-10ms, 16 ~ 60FPS
   }
 }
 /* LVGL tick source */
@@ -1055,8 +1058,8 @@ void LVGLTick(void *argument)
 {
   for(;;)
   {
-    lv_tick_inc(10);   // range 10ms
-    osDelay(10);
+    lv_tick_inc(5);   // range 10ms
+    osDelay(5);
   }
 }
 
