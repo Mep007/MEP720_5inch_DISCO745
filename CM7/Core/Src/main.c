@@ -26,6 +26,8 @@
 #include "main_user.h"
 #include "LVGL_port_screen.h"
 
+__attribute__((section(".nvm_data"))) __attribute__((used)) volatile uint32_t nvm_config_data;
+
 // MEP LTDC Buffer placed into SDRAM - MUSI BYT nastaven FrameBuffer LTDC (pak nize LTDC_Init pro kontrolu) v CubeMX na tuto fci !!! jinak kolize s Framebuf od LVGL !!!
 static uint8_t ltdc_buffer[(MY_DISP_HOR_RES*MY_DISP_VER_RES)*2]__attribute__ (( section(".SDRAM_data"), used)) = {0}; // for RGB 565
 uint32_t ltdc_buffer_addr(void)
@@ -70,6 +72,8 @@ MDMA_HandleTypeDef hmdma_jpeg_outfifo_th;
 LTDC_HandleTypeDef hltdc;
 
 QSPI_HandleTypeDef hqspi;
+
+RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim8;
 
@@ -130,6 +134,7 @@ static void MX_QUADSPI_Init(void);
 static void MX_FDCAN1_Init(void);
 static void MX_FDCAN2_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_RTC_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -296,10 +301,18 @@ Error_Handler();
   MX_FDCAN1_Init();
   MX_FDCAN2_Init();
   MX_USART3_UART_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 
   BSP_LED_Init(LED1);
   BSP_LED_Init(LED2);
+
+  // MEP - RTC enable -
+   __HAL_RCC_RTC_ENABLE();   // Povolení RTC
+   __HAL_RCC_LSE_CONFIG(RCC_LSE_ON);  // Zapnutí externího oscilátoru (LSE) // bylo OFF MEP
+   __HAL_RCC_BKPRAM_CLK_ENABLE();
+   HAL_PWREx_EnableBkUpReg();
+   HAL_PWR_EnableBkUpAccess();
 
   //BSP_LCD_SetBrightness(0,10);
 
@@ -314,19 +327,24 @@ Error_Handler();
   myLCD.BL.target 		=  50;     // 0-499 -> 0-100%
   myLCD.BL.target_old 	=   0;
   myLCD.BL.dir			=   1;   // po startu zaciname zvysovanim jasu
+  myLCD.UsrBut.pres_tmr =   0;
 
   /* initialize LVGL framework */
   lv_init();
   lvgl_display_init();
   lvgl_touchscreen_init();
 
+  if (RTC->BKP0R == 10)    // po stisku tlacitka aslespon 2s se nastavi na 1 a po restartu se spusti demo (po power off bezi
+     lv_demo_widgets();
+  else
+     ui_init();        // MEP vlastni UI ve SquareLine Studio
    /* lvgl demo */
-   lv_demo_widgets();
+   //lv_demo_widgets();
    //lv_demo_keypad_encoder();
    //lv_demo_music();
    //lv_demo_benchmark();
 
-   //ui_init();        // MEP vlastni UI ve SquareLine Studio
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -400,11 +418,18 @@ void SystemClock_Config(void)
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
+  /** Configure LSE Drive Capability
+  */
+  HAL_PWR_EnableBkUpAccess();
+  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE
+                              |RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
@@ -452,16 +477,16 @@ void PeriphCommonClock_Config(void)
 
   /** Initializes the peripherals clock
   */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FMC|RCC_PERIPHCLK_FDCAN;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_QSPI|RCC_PERIPHCLK_FDCAN;
   PeriphClkInitStruct.PLL2.PLL2M = 5;
-  PeriphClkInitStruct.PLL2.PLL2N = 128;
+  PeriphClkInitStruct.PLL2.PLL2N = 192;
   PeriphClkInitStruct.PLL2.PLL2P = 2;
-  PeriphClkInitStruct.PLL2.PLL2Q = 8;
-  PeriphClkInitStruct.PLL2.PLL2R = 3;
+  PeriphClkInitStruct.PLL2.PLL2Q = 12;
+  PeriphClkInitStruct.PLL2.PLL2R = 5;
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
-  PeriphClkInitStruct.FmcClockSelection = RCC_FMCCLKSOURCE_PLL2;
+  PeriphClkInitStruct.QspiClockSelection = RCC_QSPICLKSOURCE_PLL2;
   PeriphClkInitStruct.FdcanClockSelection = RCC_FDCANCLKSOURCE_PLL2;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
@@ -758,6 +783,42 @@ static void MX_QUADSPI_Init(void)
 }
 
 /**
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
+
+  /* USER CODE BEGIN RTC_Init 0 */
+
+  /* USER CODE END RTC_Init 0 */
+
+  /* USER CODE BEGIN RTC_Init 1 */
+
+  /* USER CODE END RTC_Init 1 */
+
+  /** Initialize RTC Only
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
+
+}
+
+/**
   * @brief TIM8 Initialization Function
   * @param None
   * @retval None
@@ -1028,6 +1089,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)   // callbacks for EXT_INT
 	 //================================================================================
 	 else if (GPIO_Pin == BUT_USR_Pin)  // USER BUT (BLUE HAT) INT callback
 	 {
+		 myLCD.UsrBut.press = true;
+
+
 		 myLCD.BL.target_old = myLCD.BL.target;   //save actual brightness
 		 myLCD.BL.enable     = true;            //enable brightness change
 
@@ -1085,19 +1149,51 @@ void StartDefaultTask(void *argument)
 
   for(;;)   // run every 1ms
   {
+	   // osetreni kmitani user_button
+	  if (myLCD.UsrBut.press && (HAL_GPIO_ReadPin(BUT_USR_GPIO_Port, BUT_USR_Pin)))
+	  {
+		  myLCD.UsrBut.pres_tmr++;
+		  if (myLCD.UsrBut.pres_tmr > 100)  // short press - nepouziva se zatim nikde
+		  		  myLCD.UsrBut.press_valid = true;
+		  if (myLCD.UsrBut.pres_tmr > 2000)   // long press - po jeho stisku se zmeni v RTC zalohovanem
+		  {
+			  BSP_LED_Toggle(LED_RED);
+			  myLCD.UsrBut.long_press_valid = true;
+			  if (RTC->BKP0R != 10) RTC->BKP0R = 10;   // po resetu se spusti LV_demo_widget
+			  else                  RTC->BKP0R = 0;     // nebo UI_init
+
+			  HAL_NVIC_SystemReset();                   // a vyvolame reset....
+		  }
+	  }
+	  else { myLCD.UsrBut.press = myLCD.UsrBut.press_valid = myLCD.UsrBut.long_press_valid = false; myLCD.UsrBut.pres_tmr = 0; }
+
+	  // pustene tlacitko a citac krateho stisku byl OK / nebo kmitani -> mazeme timer a zaciname od znova
+	  if (HAL_GPIO_ReadPin(BUT_USR_GPIO_Port, BUT_USR_Pin) == 0)
+	  {
+	     myLCD.UsrBut.pres_tmr = 0;
+	     if (myLCD.UsrBut.press && (myLCD.UsrBut.press_valid || myLCD.UsrBut.long_press_valid)) {
+	        myLCD.UsrBut.press = false; // validni kratky stisk
+	    	myLCD.UsrBut.pres_tmr = 0;
+	     }
+
+
+	  }
+
+       // jas dle stisku tlacitka
 	  deftim++;
 	  LCD_SetBrightness_PT(&myLCD.BL.pt, myLCD.BL.target);
 
 	  if ((deftim % 25) == 0)  // run every 25ms
 	  {
-		  print_touch_pos_VT100((uint16_t)TS_StateList.TouchX,(uint16_t)TS_StateList.TouchY);
-		  press = HAL_GPIO_ReadPin(INT_TOUCH_GPIO_Port, INT_TOUCH_Pin);       // if touched => log0
-		  printf("\033[5;0HINT_TOUCH (PG2): %d\n", press); //
-		  printf("\033[7;0HUSR_BUT (PC13): %d\n", HAL_GPIO_ReadPin(BUT_USR_GPIO_Port, BUT_USR_Pin)); //
+		  //print_touch_pos_VT100((uint16_t)TS_StateList.TouchX,(uint16_t)TS_StateList.TouchY);
+		  //press = HAL_GPIO_ReadPin(INT_TOUCH_GPIO_Port, INT_TOUCH_Pin);       // if touched => log0
+		  //printf("\033[5;0HINT_TOUCH (PG2): %d\n", press); //
+		  //printf("\033[7;0HUSR_BUT (PC13): %d\n", HAL_GPIO_ReadPin(BUT_USR_GPIO_Port, BUT_USR_Pin)); //
 
-		  (press == 0) ? (BSP_LED_On(LED_RED)): (BSP_LED_Off(LED_RED));    // if touched, Red led = on
+		  //(press == 0) ? (BSP_LED_On(LED_RED)): (BSP_LED_Off(LED_RED));    // if touched, Red led = on
 		  BSP_LED_Toggle(LED_GREEN);
 	  }
+
 
 	  osDelay(1);
    }

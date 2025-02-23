@@ -49,8 +49,9 @@ MEMORY
   FLASH  	(rx)    : ORIGIN = 0x08000000, LENGTH = 1024K    /* Memory is divided. Actual start is 0x08000000 and actual length is 2048K */
   DTCMRAM 	(xrw)  	: ORIGIN = 0x20000000, LENGTH = 128K
   RAM_D2 	(xrw)   : ORIGIN = 0x30000000, LENGTH = 288K
-  RAM_D3 	(xrw)   : ORIGIN = 0x38000000, LENGTH = 64K
-  ITCMRAM 	(xrw)  	: ORIGIN = 0x00000000, LENGTH = 64K
+  RAM_D3 	(xrw)   : ORIGIN = 0x38000000, LENGTH = 64K 
+  ITCMRAM 	(xrw)  	: ORIGIN = 0x00000000, LENGTH = 64K 
+  RAM_NVM   (rw)   : ORIGIN = 0x38800000, LENGTH = 4K       /* backup ram - MEP */ 
   QUADSPI 	(r)    	: ORIGIN = 0x90000000, LENGTH = 126M
   SDRAM     (xrw)   : ORIGIN = 0xD0000000, LENGTH = 8M
 }
@@ -209,6 +210,14 @@ SECTIONS
     *(.gnu.linkonce.r.*)
     . = ALIGN(0x4);
   } >QUADSPI
+ 
+  /* NVM data section (configuration data) - MEP add*/
+  .nvm_data (NOLOAD) :
+  {
+    . = ALIGN(4);
+    KEEP(*(.nvm))
+    . = ALIGN(4);
+  } >RAM_NVM
   
   /* LVGL images into EXT FLASH */
   .qspi_images :

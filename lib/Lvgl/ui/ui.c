@@ -26,17 +26,12 @@ lv_obj_t * ui_Label3;
 void ui_Screen2_screen_init(void);
 void ui_event_Screen2(lv_event_t * e);
 lv_obj_t * ui_Screen2;
-lv_obj_t * ui_Slider1;
 lv_obj_t * ui_Dropdown1;
-void ui_event_Button2(lv_event_t * e);
-lv_obj_t * ui_Button2;
-lv_obj_t * ui_Label2;
 lv_obj_t * ui_Spinner1;
 lv_obj_t * ui_Label4;
-lv_obj_t * ui_Image1;
-lv_obj_t * ui_Image8;
-lv_obj_t * ui_Image7;
-lv_obj_t * ui_Image6;
+lv_obj_t * ui_AFRgauge;
+lv_obj_t * ui_AFRneedle;
+lv_obj_t * ui_AfrGaugeLabel;
 // CUSTOM VARIABLES
 
 // EVENTS
@@ -45,6 +40,7 @@ lv_obj_t * ui____initial_actions0;
 // IMAGES AND IMAGE SETS
 const lv_img_dsc_t * ui_imgset_gauge_big_hor_450x[1] = {&ui_img_gauge_big_hor_450x99_png};
 const lv_img_dsc_t * ui_imgset_gauge_big_hor_inv_450x[1] = {&ui_img_gauge_big_hor_inv_450x99_png};
+const lv_img_dsc_t * ui_imgset_afe_400_test_[1] = {&ui_img_afe_400_test_1_png};
 
 ///////////////////// TEST LVGL SETTINGS ////////////////////
 #if LV_COLOR_DEPTH != 16
@@ -83,15 +79,6 @@ void ui_event_Screen2(lv_event_t * e)
     if(event_code == LV_EVENT_GESTURE &&  lv_indev_get_gesture_dir(lv_indev_get_act()) == LV_DIR_RIGHT) {
         lv_indev_wait_release(lv_indev_get_act());
         _ui_screen_change(&ui_Screen1, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 500, 100, &ui_Screen1_screen_init);
-    }
-}
-
-void ui_event_Button2(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-
-    if(event_code == LV_EVENT_PRESSED) {
-        _ui_screen_change(&ui_Screen1, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_Screen1_screen_init);
     }
 }
 

@@ -32,17 +32,12 @@ extern lv_obj_t * ui_Label3;
 void ui_Screen2_screen_init(void);
 void ui_event_Screen2(lv_event_t * e);
 extern lv_obj_t * ui_Screen2;
-extern lv_obj_t * ui_Slider1;
 extern lv_obj_t * ui_Dropdown1;
-void ui_event_Button2(lv_event_t * e);
-extern lv_obj_t * ui_Button2;
-extern lv_obj_t * ui_Label2;
 extern lv_obj_t * ui_Spinner1;
 extern lv_obj_t * ui_Label4;
-extern lv_obj_t * ui_Image1;
-extern lv_obj_t * ui_Image8;
-extern lv_obj_t * ui_Image7;
-extern lv_obj_t * ui_Image6;
+extern lv_obj_t * ui_AFRgauge;
+extern lv_obj_t * ui_AFRneedle;
+extern lv_obj_t * ui_AfrGaugeLabel;
 // CUSTOM VARIABLES
 
 // EVENTS
@@ -50,10 +45,10 @@ extern lv_obj_t * ui_Image6;
 extern lv_obj_t * ui____initial_actions0;
 
 // IMAGES AND IMAGE SETS
-LV_IMG_DECLARE(ui_img_gauge_big_hor_inv_450x99_png);    // assets/gauge_big_hor_INV_450x99.png
-LV_IMG_DECLARE(ui_img_gauge_big_hor_inv_450x99_back_png);    // assets/gauge_big_hor_INV_450x99_back.png
+LV_IMG_DECLARE(ui_img_afe_400_test_1_png);    // assets/afe_400_test_1.png
+LV_IMG_DECLARE(ui_img_afe_needle_178x24_mep_png);    // assets/afe_needle_178x24_mep.png
 LV_IMG_DECLARE(ui_img_gauge_big_hor_450x99_png);    // assets/gauge_big_hor_450x99.png
-LV_IMG_DECLARE(ui_img_gauge_big_hor_450x99_back_png);    // assets/gauge_big_hor_450x99_back.png
+LV_IMG_DECLARE(ui_img_gauge_big_hor_inv_450x99_png);    // assets/gauge_big_hor_INV_450x99.png
 
 // UI INIT
 void ui_init(void);

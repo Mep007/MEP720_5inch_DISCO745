@@ -341,7 +341,7 @@
 #define LV_ATTRIBUTE_MEM_ALIGN  __attribute__((section(".qspi_images")))
 
 /*Attribute to mark large constant arrays for example font's bitmaps*/
-#define LV_ATTRIBUTE_LARGE_CONST
+#define LV_ATTRIBUTE_LARGE_CONST __attribute__((section(".qspi_images")))
 
 /*Compiler prefix for a big array declaration in RAM*/
 #define LV_ATTRIBUTE_LARGE_RAM_ARRAY
@@ -373,14 +373,14 @@
 #define LV_FONT_MONTSERRAT_18 1
 #define LV_FONT_MONTSERRAT_20 1
 #define LV_FONT_MONTSERRAT_22 1
-#define LV_FONT_MONTSERRAT_24 0
+#define LV_FONT_MONTSERRAT_24 1
 #define LV_FONT_MONTSERRAT_26 1
-#define LV_FONT_MONTSERRAT_28 0
-#define LV_FONT_MONTSERRAT_30 0
-#define LV_FONT_MONTSERRAT_32 0
-#define LV_FONT_MONTSERRAT_34 0
-#define LV_FONT_MONTSERRAT_36 0
-#define LV_FONT_MONTSERRAT_38 0
+#define LV_FONT_MONTSERRAT_28 1
+#define LV_FONT_MONTSERRAT_30 1
+#define LV_FONT_MONTSERRAT_32 1
+#define LV_FONT_MONTSERRAT_34 1
+#define LV_FONT_MONTSERRAT_36 1
+#define LV_FONT_MONTSERRAT_38 1
 #define LV_FONT_MONTSERRAT_40 0
 #define LV_FONT_MONTSERRAT_42 0
 #define LV_FONT_MONTSERRAT_44 0

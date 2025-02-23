@@ -36,6 +36,7 @@ extern "C" {
 #include <time.h>
 #include <string.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "pt-1.4/pt.h"
 
@@ -76,7 +77,16 @@ typedef struct
 
 typedef struct
 {
+  bool      	press;
+  bool      	press_valid;
+  bool      	long_press_valid;
+  u_int32_t     pres_tmr;      // for PWM 0-100
+
+} tUserBut;
+typedef struct
+{
   tBLtype   BL;
+  tUserBut  UsrBut;
 
 } tMyLCD;
 
