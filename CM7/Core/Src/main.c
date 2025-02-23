@@ -25,6 +25,13 @@
 /* USER CODE BEGIN Includes */
 #include "main_user.h"
 #include "LVGL_port_screen.h"
+
+// MEP LTDC Buffer placed into SDRAM - MUSI BYT nastaven FrameBuffer LTDC (pak nize LTDC_Init pro kontrolu) v CubeMX na tuto fci !!! jinak kolize s Framebuf od LVGL !!!
+static uint8_t ltdc_buffer[(MY_DISP_HOR_RES*MY_DISP_VER_RES)*2]__attribute__ (( section(".SDRAM_data"), used)) = {0}; // for RGB 565
+uint32_t ltdc_buffer_addr(void)
+{
+  return (uint32_t)&ltdc_buffer[0];
+}
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,15 +39,6 @@ typedef StaticTask_t osStaticThreadDef_t;
 /* USER CODE BEGIN PTD */
 extern uint32_t *g_pfnVectors;
 
-// MEP LTDC Buffer placed into SDRAM
-//uint8_t ltdc_buffer[MY_DISP_HOR_RES*MY_DISP_VER_RES*2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
-static uint32_t ltdc_buffer[(MY_DISP_HOR_RES*MY_DISP_VER_RES)/2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
-
-
-uint32_t ltdc_buffer_addr(void)
-{
-  return (uint32_t)&ltdc_buffer[0];
-}
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -95,14 +93,14 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t lvglTickHandle;
 const osThreadAttr_t lvglTick_attributes = {
   .name = "lvglTick",
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityAboveNormal,
   .stack_size = 4096
 };
 
 osThreadId_t lvglTimerHandle;
 const osThreadAttr_t lvglTimer_attributes = {
   .name = "lvglTimer",
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityAboveNormal,
   .stack_size = 4096
 };
 
@@ -119,6 +117,7 @@ const osThreadAttr_t taskMonitor_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
+static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_MDMA_Init(void);
 static void MX_FMC_Init(void);
@@ -227,6 +226,9 @@ int main(void)
   int32_t timeout;
 /* USER CODE END Boot_Mode_Sequence_0 */
 
+  /* MPU Configuration--------------------------------------------------------*/
+  MPU_Config();
+
   /* Enable the CPU Cache */
 
   /* Enable I-Cache---------------------------------------------------------*/
@@ -309,9 +311,9 @@ Error_Handler();
   // init Protothread to set brightness (after) reset
   PT_INIT(&myLCD.BL.pt);
   myLCD.BL.enable 		= false; // BL not allowd now - after all tasks have been started - see default task
-  myLCD.BL.target 		= 100;     // 0-499 -> 0-100%
+  myLCD.BL.target 		=  50;     // 0-499 -> 0-100%
   myLCD.BL.target_old 	=   0;
-  myLCD.BL.dir			=   0;
+  myLCD.BL.dir			=   1;   // po startu zaciname zvysovanim jasu
 
   /* initialize LVGL framework */
   lv_init();
@@ -319,11 +321,12 @@ Error_Handler();
   lvgl_touchscreen_init();
 
    /* lvgl demo */
-  lv_demo_widgets();
+   lv_demo_widgets();
    //lv_demo_keypad_encoder();
    //lv_demo_music();
-  // lv_demo_benchmark();
+   //lv_demo_benchmark();
 
+   //ui_init();        // MEP vlastni UI ve SquareLine Studio
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -351,6 +354,7 @@ Error_Handler();
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+   // MEP - Lvgl threads
   lvglTickHandle 		= osThreadNew(LVGLTick, NULL, &lvglTick_attributes);
   lvglTimerHandle 		= osThreadNew(LVGLTimer, NULL, &lvglTimer_attributes);
   //taskMonitorHandle 	= osThreadNew(TaskMonitor, NULL, &taskMonitor_attributes);
@@ -450,10 +454,10 @@ void PeriphCommonClock_Config(void)
   */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_FMC|RCC_PERIPHCLK_FDCAN;
   PeriphClkInitStruct.PLL2.PLL2M = 5;
-  PeriphClkInitStruct.PLL2.PLL2N = 192;
+  PeriphClkInitStruct.PLL2.PLL2N = 128;
   PeriphClkInitStruct.PLL2.PLL2P = 2;
-  PeriphClkInitStruct.PLL2.PLL2Q = 12;
-  PeriphClkInitStruct.PLL2.PLL2R = 4;
+  PeriphClkInitStruct.PLL2.PLL2Q = 8;
+  PeriphClkInitStruct.PLL2.PLL2R = 3;
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
   PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
@@ -713,10 +717,7 @@ static void MX_LTDC_Init(void)
   {
     Error_Handler();
   }
-
   /* USER CODE BEGIN LTDC_Init 2 */
-   __NOP();
-  pLayerCfg.FBStartAdress = ltdc_buffer_addr();  // MEP aby byl videt LTDC buffer v RAM Build analyzeru
 
   /* USER CODE END LTDC_Init 2 */
 
@@ -1050,7 +1051,7 @@ void LVGLTimer(void *argument)
   for(;;)
   {
      lv_timer_handler();   // 1 tick ~ 1ms (for 1000Hz RTOS main timer)
-	 osDelay(10);         // range 5-10ms, 16 ~ 60FPS
+	 osDelay(10);          // range 5-10ms, 16 ~ 60FPS
   }
 }
 /* LVGL tick source */
@@ -1058,8 +1059,8 @@ void LVGLTick(void *argument)
 {
   for(;;)
   {
-    lv_tick_inc(5);   // range 10ms
-    osDelay(5);
+    lv_tick_inc(1);   // range 1-10ms
+    osDelay(1);
   }
 }
 
@@ -1101,6 +1102,56 @@ void StartDefaultTask(void *argument)
 	  osDelay(1);
    }
   /* USER CODE END 5 */
+}
+
+ /* MPU Configuration */
+
+void MPU_Config(void)
+{
+  MPU_Region_InitTypeDef MPU_InitStruct = {0};
+
+  /* Disables the MPU */
+  HAL_MPU_Disable();
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+  MPU_InitStruct.Number = MPU_REGION_NUMBER0;
+  MPU_InitStruct.BaseAddress = 0x24000000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_512KB;
+  MPU_InitStruct.SubRegionDisable = 0x87;
+  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
+  MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.BaseAddress = 0xD0000000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_8MB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER2;
+  MPU_InitStruct.BaseAddress = 0x90000000;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_128MB;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+  MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+  /* Enables the MPU */
+  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+
 }
 
 /**

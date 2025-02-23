@@ -209,7 +209,15 @@ SECTIONS
     *(.gnu.linkonce.r.*)
     . = ALIGN(0x4);
   } >QUADSPI
-
+  
+  /* LVGL images into EXT FLASH */
+  .qspi_images :
+    {
+        . = ALIGN(4);  /* Zarovnání na 4 bajty */
+        *(.qspi_images)  /* Proměnné definované v sekci .qspi_vars */        
+        . = ALIGN(4);
+    } >QUADSPI
+    
   .SDRAM_data (NOLOAD) :
   {  
     /* Přidání sekce .sdram pro LVGL buffery */

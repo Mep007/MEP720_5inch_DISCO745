@@ -1,0 +1,10 @@
+{
+  "Name": "Material Icons",
+  "Author": "Google",
+  "Description": "The theme includes a collection of icons made by Google.\nAll the icons can be downloaded at https://github.com/google/material-design-icons.\nThis theme is part of TouchGFX Stock, meaning that all graphical designs, images and icons provided are free to use in commercial projects using microcontroller and/or microprocessor devices manufactured by or for STMicroelectronics.",
+  "Colors": [],
+  "Previews": [
+    "preview.png"
+  ],
+  "License": "https://www.apache.org/licenses/LICENSE-2.0.html"
+}

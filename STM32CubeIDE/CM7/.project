@@ -42,6 +42,11 @@
 			<location>C:/LVGL/MEP720_5inch_DISCO745/lib/Third_Party</location>
 		</link>
 		<link>
+			<name>Lvgl/ui</name>
+			<type>2</type>
+			<location>C:/LVGL/MEP720_5inch_DISCO745/lib/Lvgl/ui</location>
+		</link>
+		<link>
 			<name>Utilities/jpeg_utils.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-PROJECT_LOC/Utilities/JPEG/jpeg_utils.c</locationURI>

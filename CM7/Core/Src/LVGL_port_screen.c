@@ -15,13 +15,16 @@ static void disp_flush_complete (DMA2D_HandleTypeDef*);
 static lv_disp_drv_t		disp_drv;
 static lv_disp_draw_buf_t 	disp_buf;
 
+static lv_coord_t width_cache;  // MEP add
+static lv_coord_t height_cache;
+
 /**********************
  *  DEFINES
  **********************/
 //#define LVGL_BUFFER_1_ADDR_AT_SDRAM	SDRAM_DEVICE_ADDR + 2 * (MY_DISP_HOR_RES * MY_DISP_VER_RES)      // RGB565 ( ex. 800x480 x2bytes/per pixel = 768kB/per buffer)
 //#define LVGL_BUFFER_2_ADDR_AT_SDRAM	SDRAM_DEVICE_ADDR + 4 * (MY_DISP_HOR_RES * MY_DISP_VER_RES)      //
-static uint32_t buf1[(MY_DISP_HOR_RES*MY_DISP_VER_RES)/2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
-static uint32_t buf2[(MY_DISP_HOR_RES*MY_DISP_VER_RES)/2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
+static volatile uint8_t buf1[(MY_DISP_HOR_RES*MY_DISP_VER_RES) * 2]__attribute__ (( section(".SDRAM_data"), used)) = {0}; // pozor na kolizi s LTDC Bufferem, viz main.c nahore
+static volatile uint8_t buf2[(MY_DISP_HOR_RES*MY_DISP_VER_RES) * 2]__attribute__ (( section(".SDRAM_data"), used)) = {0};
 
 /**********************
  *   GLOBAL FUNCTIONS
@@ -30,11 +33,11 @@ static uint32_t buf2[(MY_DISP_HOR_RES*MY_DISP_VER_RES)/2]__attribute__ (( sectio
 void lvgl_display_init (void)   // display initialization /* display is already initialized by cubemx-generated code
 {
   lv_disp_draw_buf_init (&disp_buf,
-      //(void*) LVGL_BUFFER_1_ADDR_AT_SDRAM,
-      //(void*) LVGL_BUFFER_2_ADDR_AT_SDRAM,
-	  (void*) buf1,
-	  (void*) buf2,
-      MY_DISP_HOR_RES * MY_DISP_VER_RES);
+    //  (void*) LVGL_BUFFER_1_ADDR_AT_SDRAM,
+     // (void*) LVGL_BUFFER_2_ADDR_AT_SDRAM,
+	(void*) buf1,
+	(void*) buf2,
+    MY_DISP_HOR_RES * MY_DISP_VER_RES);
 
   /* register the display in LVGL */
   lv_disp_drv_init(&disp_drv);
@@ -67,8 +70,10 @@ static void disp_flush (lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *c
   lv_coord_t width = lv_area_get_width(area);
   lv_coord_t height = lv_area_get_height(area);
 
+  width_cache = width;        // store for disp_flush_complete viz nize
+  height_cache = height;
+
   SCB_CleanDCache_by_Addr((uint32_t*)color_p, width * height * 2);
-  //SCB_CleanInvalidateDCache();         // cisti a inicializuje celou cache, muze byt pomale
 
   DMA2D->CR = 0x0U << DMA2D_CR_MODE_Pos;
   DMA2D->FGPFCCR = DMA2D_INPUT_RGB565;
@@ -83,11 +88,12 @@ static void disp_flush (lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *c
   DMA2D->CR |= DMA2D_CR_TCIE;
   DMA2D->CR |= DMA2D_CR_START;
 
-  SCB_InvalidateDCache_by_Addr((uint32_t*)hltdc.LayerCfg[0].FBStartAdress, width * height * 2);
+
 }
 
 //----------------------------------------------------------------------------------------------------
 static void disp_flush_complete (DMA2D_HandleTypeDef *hdma2d)
 {
+  SCB_InvalidateDCache_by_Addr((uint32_t*)hltdc.LayerCfg[0].FBStartAdress, width_cache * height_cache * 2);
   lv_disp_flush_ready(&disp_drv);
 }

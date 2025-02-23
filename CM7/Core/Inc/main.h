@@ -49,6 +49,7 @@ extern "C" {
 #include "lvgl.h"
 #include "lv_conf.h"
 #include "lvgl/demos/lv_demos.h"
+#include "ui/ui.h"
 
 
 /* USER CODE END Includes */
